@@ -8,19 +8,23 @@
 ## Table of Contents
 
 1. [Introduction](#introduction)
-2. [Getting Started](#getting-started)
-3. [Best Practices for Creating Semantic Views](#best-practices-for-creating-semantic-views)
-4. [Ownership and Data Access](#ownership-and-data-access)
-5. [Defining Facts, Dimensions, and Metrics](#defining-facts-dimensions-and-metrics)
-6. [Options for Creating and Managing Semantic Views](#options-for-creating-and-managing-semantic-views)
-7. [YAML Conversion and Interoperability](#yaml-conversion-and-interoperability)
-8. [Automated Deployment with CI/CD](#automated-deployment-with-cicd)
-9. [Integration with dbt Projects](#integration-with-dbt-projects)
-10. [Integration with BI Tools](#integration-with-bi-tools)
-11. [Validation Rules](#validation-rules)
-12. [Performance and Sizing Guidelines](#performance-and-sizing-guidelines)
-13. [Troubleshooting](#troubleshooting)
-14. [Additional Resources](#additional-resources)
+2. [Customer Use Cases](#customer-use-cases)
+3. [Getting Started](#getting-started)
+4. [Best Practices for Creating Semantic Views](#best-practices-for-creating-semantic-views)
+5. [AI Metadata for Improved Accuracy](#ai-metadata-for-improved-accuracy)
+6. [Ownership and Data Access](#ownership-and-data-access)
+7. [Defining Facts, Dimensions, and Metrics](#defining-facts-dimensions-and-metrics)
+8. [Querying Semantic Views with SQL](#querying-semantic-views-with-sql)
+9. [Options for Creating and Managing Semantic Views](#options-for-creating-and-managing-semantic-views)
+10. [YAML vs Native Semantic Views](#yaml-vs-native-semantic-views)
+11. [YAML Conversion and Interoperability](#yaml-conversion-and-interoperability)
+12. [Automated Deployment with CI/CD](#automated-deployment-with-cicd)
+13. [Integration with dbt Projects](#integration-with-dbt-projects)
+14. [Integration with BI Tools](#integration-with-bi-tools)
+15. [Validation Rules](#validation-rules)
+16. [Performance and Sizing Guidelines](#performance-and-sizing-guidelines)
+17. [Troubleshooting](#troubleshooting)
+18. [Additional Resources](#additional-resources)
 
 ---
 
@@ -34,6 +38,38 @@ Semantic views are Snowflake metadata objects that bridge the gap between busine
 - **Unified data perspective**: Shift from querying specific data sources to focusing on business use cases
 
 **Key Benefit**: When a user asks for "Net Revenue by Region," the semantic view knows to aggregate at the appropriate level, eliminating inconsistent calculations across reports and applications.
+
+### Core Value Propositions
+
+| Capability | Description |
+|------------|-------------|
+| **Unlock Conversational Analytics** | Enable high quality, consistent, and governed conversational analytics in Cortex Analyst, Snowflake Intelligence, and other text-to-SQL clients |
+| **Any Analytics Surface, Same Answer** | Whether talking to your data, writing SQL, or using a BI client, semantic views ensure all analytics consumers get consistent answers |
+| **Snowflake Security and Governance** | Semantic views are securable schema objects with object-level RBAC, replication, and DR capabilities |
+
+---
+
+## Customer Use Cases
+
+Real-world examples of how customers are leveraging semantic views:
+
+### Healthcare Analytics Provider
+> "New use case will use a structured dataset, provide a semantic layer on top for the specific features, and then use Cortex Analyst to power this kind of text-to-SQL application in a Streamlit front-end. The end-users would be the internal data science team, but it would also be used by external customers."
+
+### Major Manufacturer
+> "Application using Snowflake homegrown dashboard interface. Business users will be able to run reports by using a Drag & Drop interface. From the tech point of view, it will be built using a semantic layer that refreshes a specific dataset in Snowflake, at the same time generating a PBI connection in order to consume a specific report."
+
+### Gaming Company
+> "Planning to replace our current solution built on PowerBI and their semantic model and move this to a Streamlit + Semantic model/layer + Cortex Analyst to deliver an elevated experience."
+
+### Common Patterns
+
+| Pattern | Description |
+|---------|-------------|
+| **Text-to-SQL Applications** | Semantic views + Cortex Analyst + Streamlit front-end |
+| **Self-Service Analytics** | Drag & drop interfaces powered by semantic layer |
+| **BI Migration** | Moving from vendor-specific semantic models to Snowflake-native |
+| **Internal + External Users** | Same semantic layer serving both internal teams and customers |
 
 ---
 
@@ -103,6 +139,60 @@ Before building your semantic view, design your business data model by answering
 - Start with a simple star schema
 - Begin with core tables and metrics, then expand
 - Get feedback from business users and refine
+
+---
+
+## AI Metadata for Improved Accuracy
+
+Semantic views include additional AI metadata that significantly improves Cortex Analyst accuracy. These features help the model understand your business context better.
+
+### Verified Queries
+
+Pre-approved examples of real user questions with verified SQL answers.
+
+| Feature | Description | Example |
+|---------|-------------|---------|
+| **Purpose** | Provide gold-standard examples for the AI | "Total profit last quarter" → Pre-approved SQL query |
+| **Benefit** | Reduces hallucinations and improves accuracy | AI learns from known-good query patterns |
+| **Best Practice** | Include 5-10 representative queries | Cover common business questions |
+
+### Custom Instructions
+
+Business-specific guidance for query generation that helps the AI understand your terminology.
+
+| Feature | Description | Example |
+|---------|-------------|---------|
+| **Purpose** | Provide business rules and conventions | "Use 'net_revenue' when users ask for revenue" |
+| **Benefit** | Ensures consistent interpretation | AI follows your business definitions |
+| **Best Practice** | Document common terminology mappings | Define what "revenue", "profit", "active" mean |
+
+### Cortex Search Services
+
+Integration with Cortex Search helps map user inputs to correct data values.
+
+| Feature | Description | Example |
+|---------|-------------|---------|
+| **Purpose** | Fuzzy matching for dimension values | User asks about "iphone 13" → Mapped to "Apple iPhone 13" |
+| **Benefit** | Handles typos, abbreviations, variations | Improves query success rate |
+| **Best Practice** | Add Cortex Search for high-cardinality categorical dimensions | Product names, customer names, locations |
+
+### Implementing AI Metadata
+
+```sql
+-- Example: Adding a dimension with Cortex Search Service
+CREATE OR REPLACE SEMANTIC VIEW product_analytics
+TABLES (
+  products PRIMARY KEY (product_id)
+)
+DIMENSIONS (
+  products.product_name AS p_name
+    WITH CORTEX_SEARCH_SERVICE = my_db.my_schema.product_search_service
+    COMMENT = 'Product name with fuzzy matching enabled'
+)
+-- ... rest of definition
+```
+
+> **Tip**: Semantic models that include verified queries and custom instructions have been shown to produce significantly higher accuracy in text-to-SQL conversions.
 
 ---
 
@@ -237,6 +327,84 @@ Expressions for dimensions, facts, or metrics can reference:
 
 ---
 
+## Querying Semantic Views with SQL
+
+The `SEMANTIC_VIEW()` function enables queries over semantic views using business-friendly syntax.
+
+### Basic Query Examples
+
+**Example 1: Compute a single metric**
+
+```sql
+-- Get total customer count
+SELECT * FROM SEMANTIC_VIEW(
+  Customer_360_View
+  METRICS customer.customer_count
+);
+```
+
+| CUSTOMER_COUNT |
+|----------------|
+| 150000 |
+
+**Example 2: Metric with dimension breakdown**
+
+```sql
+-- Get customer count by region
+SELECT * FROM SEMANTIC_VIEW(
+  Customer_360_View
+  DIMENSIONS region.region_dim
+  METRICS customer.customer_count
+);
+```
+
+| REGION_DIM | CUSTOMER_COUNT |
+|------------|----------------|
+| AFRICA | 29764 |
+| AMERICA | 29952 |
+| ASIA | 30183 |
+| EUROPE | 30197 |
+| MIDDLE EAST | 29904 |
+
+**Example 3: Multiple metrics and dimensions with filter**
+
+```sql
+-- Get order metrics by region for 2024
+SELECT * FROM SEMANTIC_VIEW(
+  Sales_Analytics
+  DIMENSIONS 
+    region.region_name,
+    orders.order_year
+  METRICS 
+    orders.total_revenue,
+    orders.order_count,
+    orders.average_order_value
+  WHERE orders.order_year = 2024
+);
+```
+
+### Query Syntax Reference
+
+```sql
+SELECT * FROM SEMANTIC_VIEW(
+  <semantic_view_name>
+  [ METRICS <metric> [, ...] | FACTS <fact_expr> [, ...] ]
+  [ DIMENSIONS <dimension_expr> [, ...] ]
+  [ WHERE <predicate> ]
+);
+```
+
+| Clause | Required | Description |
+|--------|----------|-------------|
+| `METRICS` | One of METRICS, FACTS, or DIMENSIONS required | Aggregated calculations |
+| `FACTS` | One of METRICS, FACTS, or DIMENSIONS required | Row-level values (cannot combine with METRICS) |
+| `DIMENSIONS` | One of METRICS, FACTS, or DIMENSIONS required | Grouping/filtering dimensions |
+| `WHERE` | Optional | Filter predicate (applied before aggregation) |
+
+> **Note**: You cannot specify FACTS and METRICS in the same query.
+
+---
+
 ## Options for Creating and Managing Semantic Views
 
 ### Three Main Approaches
@@ -266,6 +434,59 @@ Once created, semantic views can be managed using:
 - Cortex Analyst user interface
 - Streamlit or custom applications using the Cortex Analyst API
 - Cortex Agents
+
+---
+
+## YAML vs Native Semantic Views
+
+Understanding the differences between YAML-based semantic models and native semantic view schema objects.
+
+### Feature Comparison
+
+| Feature | YAML Semantic Model | Native Semantic View |
+|---------|---------------------|----------------------|
+| **Storage** | YAML file stored on Snowflake stage | Native schema object in database |
+| **Management** | File-based management | DDL commands (CREATE, ALTER, DROP) |
+| **Version Control** | Direct Git integration via file | Export to YAML for Git storage |
+| **RBAC** | Stage-level permissions only | Object-level RBAC (SELECT, REFERENCES, etc.) |
+| **Discoverability** | Manual file discovery | SHOW, DESCRIBE, Information Schema |
+| **Sharing** | Not directly shareable | Shareable via Marketplace and data sharing |
+| **Replication** | Not supported | Built-in (upon feature GA) |
+| **Cortex Analyst** | Fully supported | Fully supported |
+| **BI Tool Integration** | Limited | Native integrations available |
+
+### When to Use Each
+
+| Use Case | Recommendation |
+|----------|----------------|
+| **New projects** | Start with native semantic views |
+| **Existing YAML models** | Convert to native semantic views using `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML` |
+| **CI/CD pipelines** | Use native semantic views with YAML export for version control |
+| **Data sharing** | Native semantic views required |
+| **Quick prototyping** | Either works; YAML may be faster for initial iteration |
+
+### Migration Path
+
+```
+┌─────────────────────┐     ┌─────────────────────────────────┐
+│  YAML Semantic      │────▶│  SYSTEM$CREATE_SEMANTIC_VIEW_   │
+│  Model (on stage)   │     │  FROM_YAML()                    │
+└─────────────────────┘     └─────────────────────────────────┘
+                                          │
+                                          ▼
+                            ┌─────────────────────────────────┐
+                            │  Native Semantic View           │
+                            │  (schema object with RBAC)      │
+                            └─────────────────────────────────┘
+                                          │
+                                          ▼
+                            ┌─────────────────────────────────┐
+                            │  SYSTEM$READ_YAML_FROM_         │
+                            │  SEMANTIC_VIEW() for Git        │
+                            └─────────────────────────────────┘
+```
+
+> **Recommendation**: For new implementations, always start with native semantic views to benefit from RBAC, discoverability, and sharing capabilities.
 
 ---
 
@@ -433,16 +654,44 @@ dbt build --target snowflake --select semantic_view_basic+
 
 ## Integration with BI Tools
 
-Several BI tool vendors offer integrations with Snowflake semantic views:
+Semantic views are designed to work across multiple analytics surfaces, ensuring consistent answers regardless of the interface.
 
-| Tool | Integration Link |
-|------|------------------|
-| **Sigma** | [Snowflake Semantic Views Launch](https://www.sigmacomputing.com/blog/snowflake-semantic-views-launch) |
-| **Omni** | [Omni + Snowflake](https://omni.co/snowflake) |
-| **Honeydew** | [Honeydew and Snowflake Semantic Views](https://honeydew.ai/blog/honeydew-and-snowflake-semantic-views/) |
-| **Hex** | [Snowflake Semantic Sync & AISQL](https://hex.tech/blog/introducing-snowflake-semantic-sync-aisql/) |
+### Available Integrations
 
-Contact your BI tool account teams for specific integration details.
+| Status | Tool | Integration Link |
+|--------|------|------------------|
+| ✅ **Available** | **Sigma** | [Snowflake Semantic Views Launch](https://www.sigmacomputing.com/blog/snowflake-semantic-views-launch) |
+| ✅ **Available** | **Omni** | [Omni + Snowflake](https://omni.co/snowflake) |
+| ✅ **Available** | **Honeydew** | [Honeydew and Snowflake Semantic Views](https://honeydew.ai/blog/honeydew-and-snowflake-semantic-views/) |
+| ✅ **Available** | **Hex** | [Snowflake Semantic Sync & AISQL](https://hex.tech/blog/introducing-snowflake-semantic-sync-aisql/) |
+| 🔄 **In Development** | **ThoughtSpot** | Contact your account team |
+| 🔄 **In Development** | **Preset** | Contact your account team |
+| 🔄 **In Development** | **Domo** | Contact your account team |
+
+### PowerBI Considerations
+
+PowerBI integration presents unique challenges due to Microsoft-specific technologies:
+
+| Challenge | Details |
+|-----------|---------|
+| **DAX & MDX** | PowerBI uses Microsoft-centric query languages |
+| **XMLA Protocol** | Requires specific metadata protocol support |
+| **Fabric Strategy** | PowerBI serves as Microsoft's on-ramp to Fabric |
+
+> **Current Approach**: For PowerBI users, consider using Snowflake semantic views with a Streamlit + Cortex Analyst front-end as an alternative, or maintain parallel semantic definitions.
+
+### Open Semantic Interchange (OSI) Initiative
+
+Snowflake is participating in the development of **Open Semantic Interchange (OSI)**, a new open standard that provides a universal "language" for semantic metadata used for AI and BI.
+
+**Benefits of OSI:**
+- **Data Consistency**: Single source of truth for data definitions across tools
+- **True Interoperability**: Easily interchange data between platforms without rebuilding logic
+- **Accelerate AI Adoption**: Consistent, trusted semantic layer for reliable AI insights
+
+**OSI Working Group Participants** include: Alation, Atlan, dbt Labs, Databricks, Hex, Honeydew, Omni, Sigma, Salesforce, AWS, Collibra, Informatica, and others.
+
+Contact your BI tool account teams for specific integration details and timeline updates.
 
 ---
 
