@@ -129,6 +129,8 @@ Use RBAC to grant appropriate privileges to semantic views and their dependent o
 | `MONITOR` | View details about the semantic view and Cortex Analyst monitoring data |
 | `OWNERSHIP` | Full control over the semantic view |
 
+> **Important**: To query a semantic view, users only need `SELECT` on the semantic view itself — they do **not** need `SELECT` on the underlying tables or views. The semantic view acts as an abstraction layer that handles data access.
+
 #### Recommended Grant Pattern
 
 Create objects within the same database schema and use a specific custom role for access:
@@ -145,6 +147,8 @@ GRANT USAGE ON DATABASE IDENTIFIER($my_db) TO ROLE IDENTIFIER($my_role);
 GRANT USAGE ON SCHEMA IDENTIFIER($my_full_schema) TO ROLE IDENTIFIER($my_role);
 
 -- Grant privileges on future objects within the schema
+-- Note: SELECT on tables/views is optional for querying semantic views,
+-- but included here for users who may also need direct table access
 GRANT SELECT ON FUTURE TABLES IN SCHEMA IDENTIFIER($my_full_schema) TO ROLE IDENTIFIER($my_role);
 GRANT SELECT ON FUTURE VIEWS IN SCHEMA IDENTIFIER($my_full_schema) TO ROLE IDENTIFIER($my_role);
 GRANT SELECT ON FUTURE SEMANTIC VIEWS IN SCHEMA IDENTIFIER($my_full_schema) TO ROLE IDENTIFIER($my_role);
